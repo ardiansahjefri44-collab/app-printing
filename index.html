@@ -1258,6 +1258,48 @@
         </div>
     </div>
 
+    <!-- Modal: Bayar Piutang -->
+    <div id="modalBayarPiutang" class="modal">
+        <div class="modal-content p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-slate-800">Bayar Piutang</h2>
+                <button onclick="closeModal('modalBayarPiutang')" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="formBayarPiutang" onsubmit="saveBayarPiutang(event)">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Pilih Piutang</label>
+                        <select id="bayarPiutangId" class="input-field">
+                            <!-- Dynamic -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Tanggal Bayar</label>
+                        <input type="date" id="bayarPiutangTanggal" class="input-field" required>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Nominal Bayar (Rp)</label>
+                        <input type="number" id="bayarPiutangNominal" class="input-field" placeholder="0" required>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Metode Pembayaran</label>
+                        <select id="bayarPiutangMetode" class="input-field">
+                            <option value="tunai">Tunai</option>
+                            <option value="transfer">Transfer</option>
+                            <option value="transferLuar">Transfer dari Saldo Luar</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-5">
+                    <button type="button" onclick="closeModal('modalBayarPiutang')" class="btn btn-secondary flex-1">Batal</button>
+                    <button type="submit" class="btn btn-primary flex-1">Bayar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -1439,7 +1481,11 @@
                         hutangUsaha += Number(t.total || 0);
                     }
                 } else if (t.type === 'bayarHutang') {
-                    tunaiKeluar += Number(t.nominal || 0);
+                    const isInternalHutang = ['hpp', 'laba', 'hutangAset'].includes(t.sumber);
+                    if (!isInternalHutang) tunaiKeluar += Number(t.nominal || 0);
+                } else if (t.type === 'bayarPiutang') {
+                    // Piutang yang dibayar masuk sebagai kas (tunai/transfer/transferLuar)
+                    tunaiMasuk += Number(t.nominal || 0);
                 }
             });
 
@@ -1496,14 +1542,15 @@
 
         function renderTransactionItem(t) {
             const isPenjualan = t.type === 'penjualan';
-            const isBayar = t.type === 'bayarHutang';
-            const amount = isPenjualan ? t.total : (isBayar ? t.nominal : t.total);
-            const colorClass = isPenjualan ? 'text-emerald-600' : (isBayar ? 'text-amber-600' : 'text-rose-600');
-            const badgeClass = isPenjualan ? 'badge-success' : (isBayar ? 'badge-warning' : 'badge-danger');
+            const isBayarHutang = t.type === 'bayarHutang';
+            const isBayarPiutang = t.type === 'bayarPiutang';
+            const amount = isPenjualan ? t.total : (isBayarHutang || isBayarPiutang ? t.nominal : t.total);
+            const colorClass = isPenjualan ? 'text-emerald-600' : (isBayarHutang ? 'text-amber-600' : (isBayarPiutang ? 'text-teal-600' : 'text-rose-600'));
+            const badgeClass = isPenjualan ? 'badge-success' : (isBayarHutang ? 'badge-warning' : (isBayarPiutang ? 'badge-info' : 'badge-danger'));
             const statusText = isPenjualan ? (t.status === 'lunas' ? 'Lunas' : t.status === 'dp' ? 'DP' : 'Piutang') : 
-                              (isBayar ? 'Bayar Hutang' : (t.status === 'lunas' ? 'Lunas' : 'Hutang'));
-            const title = isPenjualan ? t.pelanggan : (isBayar ? t.keterangan : t.nama);
-            const subtitle = isPenjualan ? t.deskripsi : (isBayar ? '' : t.kategori);
+                              (isBayarHutang ? 'Bayar Hutang' : (isBayarPiutang ? 'Bayar Piutang' : (t.status === 'lunas' ? 'Lunas' : 'Hutang')));
+            const title = isPenjualan ? t.pelanggan : ((isBayarHutang || isBayarPiutang) ? t.keterangan : t.nama);
+            const subtitle = isPenjualan ? t.deskripsi : ((isBayarHutang || isBayarPiutang) ? '' : t.kategori);
 
             return `
                 <div class="card p-3 flex items-center justify-between">
@@ -1766,7 +1813,10 @@
                             </div>
                             <div class="text-right ml-3">
                                 <p class="text-sm font-bold text-emerald-600 money-display">${formatMoney(t.total)}</p>
-                                <button onclick="deleteTransaction('${t.id}')" class="text-xs text-red-500 mt-2">Hapus</button>
+                                <div class="flex gap-2 mt-1 justify-end">
+                                    ${t.piutang > 0 ? `<button onclick="openBayarPiutangModal('${t.id}')" class="text-xs text-teal-600">Bayar</button>` : ''}
+                                    <button onclick="deleteTransaction('${t.id}')" class="text-xs text-red-500">Hapus</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1788,7 +1838,10 @@
                             </div>
                             <div class="text-right ml-3">
                                 <p class="text-sm font-bold text-rose-600 money-display">${formatMoney(t.total)}</p>
-                                <button onclick="deleteTransaction('${t.id}')" class="text-xs text-red-500 mt-2">Hapus</button>
+                                <div class="flex gap-2 mt-1 justify-end">
+                                    ${t.sisa > 0 ? `<button onclick="openBayarHutangModal('usaha', '${t.id}')" class="text-xs text-teal-600">Bayar</button>` : ''}
+                                    <button onclick="deleteTransaction('${t.id}')" class="text-xs text-red-500">Hapus</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1822,6 +1875,19 @@
                         if (idx >= 0) {
                             appData.transaksi[idx].sisa += t.nominal;
                             if (appData.transaksi[idx].sisa > 0 && appData.transaksi[idx].status === 'lunas') appData.transaksi[idx].status = 'hutang';
+                        }
+                    }
+                } else if (t.type === 'bayarPiutang') {
+                    // Kembalikan piutang transaksi asli
+                    const idx = appData.transaksi.findIndex(x => x.id === t.targetId);
+                    if (idx >= 0) {
+                        const p = appData.transaksi[idx];
+                        p.piutang += t.nominal;
+                        p.dp = Math.max(0, p.dp - t.nominal);
+                        if (p.piutang === p.total) {
+                            p.status = 'belum';
+                        } else if (p.piutang > 0) {
+                            p.status = 'dp';
                         }
                     }
                 }
@@ -2013,10 +2079,19 @@
         }
 
         // ==================== HUTANG & PIUTANG ====================
-        function openBayarHutangModal() {
-            loadHutangOptions();
+        function openBayarHutangModal(jenis, id) {
             document.getElementById('formBayarHutang').reset();
             document.getElementById('bayarHutangTanggal').value = new Date().toISOString().split('T')[0];
+            
+            if (jenis) {
+                document.getElementById('bayarHutangJenis').value = jenis;
+            }
+            loadHutangOptions();
+            
+            if (id) {
+                document.getElementById('bayarHutangId').value = id;
+            }
+            
             openModal('modalBayarHutang');
         }
 
@@ -2044,6 +2119,76 @@
                     });
                 }
             }
+        }
+
+        function openBayarPiutangModal(id) {
+            loadPiutangOptions();
+            document.getElementById('formBayarPiutang').reset();
+            document.getElementById('bayarPiutangTanggal').value = new Date().toISOString().split('T')[0];
+            
+            if (id) {
+                document.getElementById('bayarPiutangId').value = id;
+                const p = appData.transaksi.find(t => t.id === id);
+                if (p) {
+                    document.getElementById('bayarPiutangNominal').value = p.piutang;
+                }
+            }
+            
+            openModal('modalBayarPiutang');
+        }
+
+        function loadPiutangOptions() {
+            const select = document.getElementById('bayarPiutangId');
+            select.innerHTML = '';
+            const piutang = appData.transaksi.filter(t => t.type === 'penjualan' && t.piutang > 0);
+            
+            if (piutang.length === 0) {
+                select.innerHTML = '<option value="">Tidak ada piutang</option>';
+            } else {
+                piutang.forEach(p => {
+                    select.innerHTML += `<option value="${p.id}">${p.pelanggan} - Sisa ${formatMoney(p.piutang)}</option>`;
+                });
+            }
+        }
+
+        function saveBayarPiutang(e) {
+            e.preventDefault();
+            const id = document.getElementById('bayarPiutangId').value;
+            const nominal = Number(document.getElementById('bayarPiutangNominal').value || 0);
+            const metode = document.getElementById('bayarPiutangMetode').value;
+            
+            if (!id) {
+                showToast('Tidak ada piutang yang dipilih');
+                return;
+            }
+
+            const p = appData.transaksi.find(t => t.id === id);
+            if (!p) return;
+            
+            if (nominal > p.piutang) {
+                showToast('Nominal bayar melebihi sisa piutang');
+                return;
+            }
+
+            // Update piutang asli
+            p.piutang = Math.max(0, p.piutang - nominal);
+            p.dp = p.total - p.piutang;
+            p.status = p.piutang === 0 ? 'lunas' : 'dp';
+
+            appData.transaksi.push({
+                id: Date.now().toString(),
+                type: 'bayarPiutang',
+                date: document.getElementById('bayarPiutangTanggal').value,
+                targetId: id,
+                nominal: nominal,
+                metode: metode,
+                keterangan: 'Bayar piutang ' + p.pelanggan,
+                pelanggan: p.pelanggan
+            });
+
+            saveData();
+            closeModal('modalBayarPiutang');
+            showToast('Pembayaran piutang tersimpan');
         }
 
         function saveBayarHutang(e) {
@@ -2115,7 +2260,7 @@
                 '<div class="empty-state py-4"><p class="text-xs">Tidak ada piutang</p></div>' :
                 piutang.map(p => `
                     <div class="card p-3 border-l-4 border-amber-500">
-                        <div class="flex justify-between">
+                        <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-sm font-semibold text-slate-800">${p.pelanggan}</p>
                                 <p class="text-xs text-slate-500">${p.deskripsi}</p>
@@ -2125,6 +2270,7 @@
                                 <p class="text-xs text-slate-400">${p.date}</p>
                             </div>
                         </div>
+                        <button onclick="openBayarPiutangModal('${p.id}')" class="btn btn-primary w-full mt-3 py-2 text-xs">Bayar Piutang</button>
                     </div>
                 `).join('');
 
@@ -2132,7 +2278,7 @@
                 '<div class="empty-state py-4"><p class="text-xs">Tidak ada hutang</p></div>' :
                 hutangUsaha.map(h => `
                     <div class="card p-3 border-l-4 border-red-500">
-                        <div class="flex justify-between">
+                        <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-sm font-semibold text-slate-800">${h.nama}</p>
                                 <p class="text-xs text-slate-500">${h.kategori}</p>
@@ -2142,10 +2288,11 @@
                                 <p class="text-xs text-slate-400">${h.date}</p>
                             </div>
                         </div>
+                        <button onclick="openBayarHutangModal('usaha', '${h.id}')" class="btn btn-primary w-full mt-3 py-2 text-xs">Bayar Hutang</button>
                     </div>
                 `).join('') + appData.aset.filter(a => a.sisa > 0).map(a => `
                     <div class="card p-3 border-l-4 border-red-500">
-                        <div class="flex justify-between">
+                        <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-sm font-semibold text-slate-800">${a.nama}</p>
                                 <p class="text-xs text-slate-500">Aset</p>
@@ -2154,6 +2301,7 @@
                                 <p class="text-sm font-bold text-red-600 money-display">${formatMoney(a.sisa)}</p>
                             </div>
                         </div>
+                        <button onclick="openBayarHutangModal('aset', '${a.id}')" class="btn btn-primary w-full mt-3 py-2 text-xs">Bayar Hutang</button>
                     </div>
                 `).join('');
         }
@@ -2268,8 +2416,11 @@
                         categories[cat] = (categories[cat] || 0) + Number(t.total || 0);
                         rows.push({ date: t.date, desc: t.nama + ' (' + t.kategori + ')', type: 'Pengeluaran', amount: t.total });
                     } else if (t.type === 'bayarHutang') {
-                        pengeluaran += Number(t.nominal || 0);
-                        rows.push({ date: t.date, desc: t.keterangan, type: 'Pengeluaran', amount: t.nominal });
+                        // Tidak ditambahkan ke total pengeluaran karena sudah tercatat saat hutang dibuat
+                        rows.push({ date: t.date, desc: t.keterangan + ' (' + t.sumber + ')', type: 'Pelunasan Hutang', amount: t.nominal });
+                    } else if (t.type === 'bayarPiutang') {
+                        // Tidak ditambahkan ke total penjualan karena sudah tercatat saat penjualan dibuat
+                        rows.push({ date: t.date, desc: t.keterangan + ' (' + t.metode + ')', type: 'Pelunasan Piutang', amount: t.nominal });
                     }
                 }
             });
@@ -2286,14 +2437,21 @@
             rows.sort((a, b) => new Date(b.date) - new Date(a.date));
             document.getElementById('reportTableBody').innerHTML = rows.length === 0 ?
                 '<tr><td colspan="4" class="text-center text-slate-400 py-4">Tidak ada transaksi</td></tr>' :
-                rows.map(r => `
+                rows.map(r => {
+                    const badgeClass = r.type === 'Pemasukan' ? 'badge-success' : 
+                                       r.type === 'Pelunasan Piutang' ? 'badge-info' : 
+                                       r.type === 'Pelunasan Hutang' ? 'badge-warning' : 'badge-danger';
+                    const colorClass = r.type === 'Pemasukan' ? 'text-emerald-600' : 
+                                       r.type === 'Pelunasan Piutang' ? 'text-teal-600' : 
+                                       r.type === 'Pelunasan Hutang' ? 'text-amber-600' : 'text-rose-600';
+                    return `
                     <tr>
                         <td>${r.date}</td>
                         <td>${r.desc}</td>
-                        <td><span class="badge ${r.type === 'Pemasukan' ? 'badge-success' : 'badge-danger'}">${r.type}</span></td>
-                        <td class="font-semibold ${r.type === 'Pemasukan' ? 'text-emerald-600' : 'text-rose-600'} money-display">${formatMoney(r.amount)}</td>
+                        <td><span class="badge ${badgeClass}">${r.type}</span></td>
+                        <td class="font-semibold ${colorClass} money-display">${formatMoney(r.amount)}</td>
                     </tr>
-                `).join('');
+                `}).join('');
 
             const catList = Object.entries(categories);
             document.getElementById('reportCategoryList').innerHTML = catList.length === 0 ?

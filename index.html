@@ -1025,19 +1025,27 @@
                     </div>
                     
                     <div class="card p-3 bg-slate-50 border border-slate-100">
-                        <p class="text-xs font-semibold text-slate-700 mb-2">Preview Pembagian Laba</p>
+                        <p class="text-xs font-semibold text-slate-700 mb-2">Preview Pembagian</p>
                         <div class="space-y-1.5 text-xs">
                             <div class="flex justify-between">
-                                <span class="text-slate-500">Modal → Saldo HPP</span>
-                                <span class="font-bold text-teal-700 money-display" id="penjualanPreviewHPP">Rp0</span>
+                                <span class="text-slate-500">Pengembalian HPP → Saldo HPP</span>
+                                <span class="font-bold text-teal-700 money-display" id="penjualanPreviewHPPRefund">Rp0</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-slate-500">Ke Saldo Laba</span>
+                                <span class="text-slate-500">Laba ke Saldo HPP (${appData.labaSplit.hpp}%)</span>
+                                <span class="font-bold text-teal-600 money-display" id="penjualanPreviewHPP">Rp0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Laba ke Saldo Laba (${appData.labaSplit.laba}%)</span>
                                 <span class="font-bold text-emerald-600 money-display" id="penjualanPreviewLaba">Rp0</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-slate-500">Ke Saldo Hutang Aset</span>
+                                <span class="text-slate-500">Laba ke Saldo Hutang Aset (${appData.labaSplit.hutangAset}%)</span>
                                 <span class="font-bold text-red-600 money-display" id="penjualanPreviewHutangAset">Rp0</span>
+                            </div>
+                            <div class="pt-1.5 mt-1.5 border-t border-slate-200 flex justify-between">
+                                <span class="text-slate-700 font-semibold">Total ke Saldo HPP</span>
+                                <span class="font-bold text-teal-800 money-display" id="penjualanPreviewTotalHPP">Rp0</span>
                             </div>
                         </div>
                     </div>
@@ -1068,7 +1076,7 @@
                     </div>
                     <div>
                         <label class="text-xs font-semibold text-slate-600 block mb-1.5">Kategori</label>
-                        <select id="pengeluaranKategori" class="input-field">
+                        <select id="pengeluaranKategori" class="input-field" onchange="togglePengeluaranFields()">
                             <option value="persediaan">Persediaan</option>
                             <option value="operasional">Operasional</option>
                             <option value="aset">Aset</option>
@@ -1078,9 +1086,23 @@
                         <label class="text-xs font-semibold text-slate-600 block mb-1.5">Nama Barang/Keterangan</label>
                         <input type="text" id="pengeluaranNama" class="input-field" placeholder="Contoh: Kertas A4 1 rim" required>
                     </div>
+                    <div id="pengeluaranStokGroup" class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1.5">Stok</label>
+                            <input type="number" id="pengeluaranStok" class="input-field" placeholder="0" value="1" oninput="calculatePengeluaranHargaSatuan()">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1.5">Satuan</label>
+                            <input type="text" id="pengeluaranSatuan" class="input-field" placeholder="rim, pcs, kg" value="pcs">
+                        </div>
+                    </div>
                     <div>
                         <label class="text-xs font-semibold text-slate-600 block mb-1.5">Total Biaya (Rp)</label>
-                        <input type="number" id="pengeluaranTotal" class="input-field" placeholder="0" required oninput="calculatePengeluaran()">
+                        <input type="number" id="pengeluaranTotal" class="input-field" placeholder="0" required oninput="calculatePengeluaranHargaSatuan()">
+                    </div>
+                    <div id="pengeluaranHargaSatuanGroup">
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Harga Satuan (Rp)</label>
+                        <input type="text" id="pengeluaranHargaSatuan" class="input-field bg-slate-50" readonly>
                     </div>
                     <div>
                         <label class="text-xs font-semibold text-slate-600 block mb-1.5">Metode Bayar</label>
@@ -1607,9 +1629,15 @@
             const pctHutangAset = Number(document.getElementById('penjualanPctHutangAset').value || 0);
             const totalPct = pctHPP + pctLaba + pctHutangAset;
             
-            document.getElementById('penjualanPreviewHPP').textContent = formatMoney(laba * pctHPP / 100);
-            document.getElementById('penjualanPreviewLaba').textContent = formatMoney(laba * pctLaba / 100);
-            document.getElementById('penjualanPreviewHutangAset').textContent = formatMoney(laba * pctHutangAset / 100);
+            const splitHPP = laba * pctHPP / 100;
+            const splitLaba = laba * pctLaba / 100;
+            const splitHutangAset = laba * pctHutangAset / 100;
+            
+            document.getElementById('penjualanPreviewHPPRefund').textContent = formatMoney(hpp);
+            document.getElementById('penjualanPreviewHPP').textContent = formatMoney(splitHPP);
+            document.getElementById('penjualanPreviewLaba').textContent = formatMoney(splitLaba);
+            document.getElementById('penjualanPreviewHutangAset').textContent = formatMoney(splitHutangAset);
+            document.getElementById('penjualanPreviewTotalHPP').textContent = formatMoney(hpp + splitHPP);
             
             const warning = document.getElementById('penjualanPctWarning');
             if (totalPct !== 100) {
@@ -1641,6 +1669,7 @@
             const splitHPP = laba * pctHPP / 100;
             const splitLaba = laba * pctLaba / 100;
             const splitHutangAset = laba * pctHutangAset / 100;
+            const totalKeHPP = hpp + splitHPP;
             
             // Simpan default pembagian laba
             appData.labaSplit = { hpp: pctHPP, laba: pctLaba, hutangAset: pctHutangAset };
@@ -1654,7 +1683,7 @@
                 total: total,
                 hpp: hpp,
                 laba: laba,
-                labaSplit: { hpp: splitHPP, laba: splitLaba, hutangAset: splitHutangAset },
+                labaSplit: { hpp: splitHPP, laba: splitLaba, hutangAset: splitHutangAset, totalHPP: totalKeHPP },
                 status: status,
                 dp: status === 'dp' ? dp : 0,
                 piutang: status === 'lunas' ? 0 : (status === 'dp' ? total - dp : total)
@@ -1664,7 +1693,7 @@
                 // Hapus efek transaksi lama dari saldo
                 const old = appData.transaksi.find(t => t.id === id);
                 if (old && old.labaSplit) {
-                    appData.saldo.hpp -= old.labaSplit.hpp;
+                    appData.saldo.hpp -= (old.labaSplit.totalHPP || old.labaSplit.hpp);
                     appData.saldo.laba -= old.labaSplit.laba;
                     appData.saldo.hutangAset -= old.labaSplit.hutangAset;
                 }
@@ -1674,8 +1703,8 @@
                 appData.transaksi.push(data);
             }
 
-            // Update saldo sesuai pembagian laba
-            appData.saldo.hpp += splitHPP;
+            // Update saldo: HPP kembali ke Saldo HPP + pembagian laba
+            appData.saldo.hpp += totalKeHPP;
             appData.saldo.laba += splitLaba;
             appData.saldo.hutangAset += splitHutangAset;
 
@@ -1689,7 +1718,32 @@
             document.getElementById('pengeluaranId').value = '';
             document.getElementById('pengeluaranTanggal').value = new Date().toISOString().split('T')[0];
             document.getElementById('pengeluaranStatus').value = 'lunas';
+            document.getElementById('pengeluaranStok').value = 1;
+            document.getElementById('pengeluaranSatuan').value = 'pcs';
+            togglePengeluaranFields();
             calculatePengeluaran();
+        }
+
+        function togglePengeluaranFields() {
+            const kategori = document.getElementById('pengeluaranKategori').value;
+            const stokGroup = document.getElementById('pengeluaranStokGroup');
+            const hargaGroup = document.getElementById('pengeluaranHargaSatuanGroup');
+            
+            if (kategori === 'persediaan') {
+                stokGroup.style.display = 'grid';
+                hargaGroup.style.display = 'block';
+            } else {
+                stokGroup.style.display = 'none';
+                hargaGroup.style.display = 'none';
+            }
+            calculatePengeluaranHargaSatuan();
+        }
+
+        function calculatePengeluaranHargaSatuan() {
+            const total = Number(document.getElementById('pengeluaranTotal').value || 0);
+            const stok = Number(document.getElementById('pengeluaranStok').value || 1);
+            const harga = stok > 0 ? total / stok : 0;
+            document.getElementById('pengeluaranHargaSatuan').value = formatMoney(harga);
         }
 
         function calculatePengeluaran() {
@@ -1717,9 +1771,12 @@
             const dp = Number(document.getElementById('pengeluaranDP').value || 0);
             const metode = document.getElementById('pengeluaranMetode').value;
             const kategori = document.getElementById('pengeluaranKategori').value;
+            const stok = Number(document.getElementById('pengeluaranStok').value || 1);
+            const satuan = document.getElementById('pengeluaranSatuan').value || 'pcs';
             
+            const newId = id || Date.now().toString();
             const data = {
-                id: id || Date.now().toString(),
+                id: newId,
                 type: 'pengeluaran',
                 date: document.getElementById('pengeluaranTanggal').value,
                 kategori: kategori,
@@ -1734,7 +1791,10 @@
             if (id) {
                 // Kembalikan efek saldo dari transaksi lama
                 const old = appData.transaksi.find(t => t.id === id);
-                if (old) restorePengeluaranBalance(old);
+                if (old) {
+                    restorePengeluaranBalance(old);
+                    removeMasterDataFromTransaction(old);
+                }
                 const idx = appData.transaksi.findIndex(t => t.id === id);
                 if (idx >= 0) appData.transaksi[idx] = data;
             } else {
@@ -1743,10 +1803,44 @@
 
             // Kurangi saldo sesuai metode dan status
             applyPengeluaranBalance(data);
+            
+            // Tambahkan ke data master jika kategori persediaan atau aset
+            addMasterDataFromTransaction(data, stok, satuan);
 
             saveData();
             closeModal('modalPengeluaran');
             showToast('Pengeluaran disimpan');
+        }
+
+        function addMasterDataFromTransaction(t, stok, satuan) {
+            if (t.kategori === 'persediaan') {
+                const harga = stok > 0 ? t.total / stok : 0;
+                appData.persediaan.push({
+                    id: Date.now().toString() + '_p',
+                    nama: t.nama,
+                    stok: stok,
+                    satuan: satuan,
+                    harga: harga,
+                    transactionId: t.id
+                });
+            } else if (t.kategori === 'aset') {
+                appData.aset.push({
+                    id: Date.now().toString() + '_a',
+                    nama: t.nama,
+                    harga: t.total,
+                    status: t.status,
+                    dp: t.dp,
+                    sisa: t.sisa,
+                    transactionId: t.id
+                });
+            }
+        }
+
+        function removeMasterDataFromTransaction(t) {
+            if (t.kategori === 'persediaan' || t.kategori === 'aset') {
+                appData.persediaan = appData.persediaan.filter(p => p.transactionId !== t.id);
+                appData.aset = appData.aset.filter(a => a.transactionId !== t.id);
+            }
         }
 
         function applyPengeluaranBalance(t) {
@@ -1853,11 +1947,12 @@
             const t = appData.transaksi.find(x => x.id === id);
             if (t) {
                 if (t.type === 'penjualan' && t.labaSplit) {
-                    appData.saldo.hpp -= t.labaSplit.hpp;
+                    appData.saldo.hpp -= (t.labaSplit.totalHPP || t.labaSplit.hpp);
                     appData.saldo.laba -= t.labaSplit.laba;
                     appData.saldo.hutangAset -= t.labaSplit.hutangAset;
                 } else if (t.type === 'pengeluaran') {
                     restorePengeluaranBalance(t);
+                    removeMasterDataFromTransaction(t);
                 } else if (t.type === 'bayarHutang') {
                     // Kembalikan saldo internal
                     if (t.sumber === 'hutangAset') appData.saldo.hutangAset += t.nominal;

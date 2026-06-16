@@ -419,10 +419,6 @@
                 <!-- Indicator Grid -->
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <div class="indicator-card">
-                        <p class="text-slate-500 text-xs font-medium">Total Kas</p>
-                        <p class="text-teal-700 font-bold text-sm mt-1 money-display" id="dashTotalKas">Rp0</p>
-                    </div>
-                    <div class="indicator-card">
                         <p class="text-slate-500 text-xs font-medium">Aset</p>
                         <p class="text-teal-700 font-bold text-sm mt-1 money-display" id="dashTotalAset">Rp0</p>
                     </div>
@@ -535,6 +531,17 @@
                             </div>
                             <p class="text-xs font-semibold text-slate-700">Laporan</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Piutang Card -->
+                <div class="mt-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-bold text-amber-700">Daftar yang Belum Bayar</h2>
+                        <button onclick="navigateTo('data'); setDataTab('hutang');" class="text-xs font-semibold text-teal-600">Lihat Semua</button>
+                    </div>
+                    <div id="dashPiutangList" class="space-y-2">
+                        <!-- Dynamic content -->
                     </div>
                 </div>
 
@@ -1472,42 +1479,29 @@
             let totalPiutang = 0;
             let totalPengeluaran = 0;
             let hutangUsaha = 0;
-            let tunaiMasuk = 0;
-            let tunaiKeluar = 0;
 
             appData.transaksi.forEach(t => {
                 if (t.type === 'penjualan') {
                     totalPenjualan += Number(t.total || 0);
                     totalHPP += Number(t.hpp || 0);
                     if (t.status === 'lunas') {
-                        tunaiMasuk += Number(t.total || 0);
+                        // lunas
                     } else if (t.status === 'dp') {
-                        tunaiMasuk += Number(t.dp || 0);
                         totalPiutang += Number(t.piutang || 0);
                     } else {
                         totalPiutang += Number(t.total || 0);
                     }
                 } else if (t.type === 'pengeluaran') {
                     totalPengeluaran += Number(t.total || 0);
-                    const isInternal = ['hpp', 'laba', 'hutangAset'].includes(t.metode);
-                    if (t.status === 'lunas') {
-                        if (!isInternal) {
-                            tunaiKeluar += Number(t.total || 0);
-                        }
-                    } else if (t.status === 'dp') {
-                        if (!isInternal) {
-                            tunaiKeluar += Number(t.dp || 0);
-                        }
+                    if (t.status === 'dp') {
                         hutangUsaha += Number(t.sisa || 0);
-                    } else {
+                    } else if (t.status === 'hutang') {
                         hutangUsaha += Number(t.total || 0);
                     }
                 } else if (t.type === 'bayarHutang') {
-                    const isInternalHutang = ['hpp', 'laba', 'hutangAset'].includes(t.sumber);
-                    if (!isInternalHutang) tunaiKeluar += Number(t.nominal || 0);
+                    // pembayaran hutang tidak mengubah total pengeluaran
                 } else if (t.type === 'bayarPiutang') {
-                    // Piutang yang dibayar masuk sebagai kas (tunai/transfer/transferLuar)
-                    tunaiMasuk += Number(t.nominal || 0);
+                    // pembayaran piutang tidak mengubah total penjualan
                 }
             });
 
@@ -1519,13 +1513,9 @@
                 hutangAset += Number(a.sisa || 0);
             });
 
-            // Total kas = tunai masuk - tunai keluar + saldo awal
-            // Simplification: kas adalah uang tunai/transfer yang masuk dikurangi yang keluar
-            const totalKas = tunaiMasuk - tunaiKeluar;
             const labaBersih = totalPenjualan - totalHPP - totalPengeluaran;
 
             return {
-                totalKas,
                 totalAset,
                 totalPiutang,
                 hutangAset,
@@ -1539,7 +1529,6 @@
 
         function renderDashboard() {
             const calc = calculateDashboard();
-            document.getElementById('dashTotalKas').textContent = formatMoney(calc.totalKas);
             document.getElementById('dashTotalAset').textContent = formatMoney(calc.totalAset);
             document.getElementById('dashTotalPiutang').textContent = formatMoney(calc.totalPiutang);
             document.getElementById('dashHutangAset').textContent = formatMoney(calc.hutangAset);
@@ -1551,6 +1540,57 @@
             document.getElementById('dashSaldoHPP').textContent = formatMoney(appData.saldo.hpp);
             document.getElementById('dashSaldoLaba').textContent = formatMoney(appData.saldo.laba);
             document.getElementById('dashSaldoHutangAset').textContent = formatMoney(appData.saldo.hutangAset);
+
+            // Piutang list
+            const piutang = appData.transaksi.filter(t => t.type === 'penjualan' && t.piutang > 0).sort((a, b) => new Date(b.date) - new Date(a.date));
+            const piutangContainer = document.getElementById('dashPiutangList');
+            if (piutang.length === 0) {
+                piutangContainer.innerHTML = '<div class="empty-state py-4"><p class="text-xs">Tidak ada yang berhutang</p></div>';
+            } else {
+                piutangContainer.innerHTML = piutang.map(p => `
+                    <div class="card p-3 border-l-4 border-amber-500">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="text-sm font-bold text-slate-800">${p.pelanggan}</p>
+                                <p class="text-xs text-slate-500">${p.deskripsi}</p>
+                                <p class="text-xs text-slate-400 mt-0.5">${p.date}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-amber-600 money-display">${formatMoney(p.piutang)}</p>
+                                <span class="badge badge-warning">${p.status === 'dp' ? 'DP' : 'Belum Bayar'}</span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-2 mb-2 text-[10px]">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span class="text-slate-500">HPP:</span>
+                                    <span class="font-medium text-slate-700">${formatMoney(p.hpp)}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">Laba:</span>
+                                    <span class="font-medium text-emerald-600">${formatMoney(p.laba)}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">HPP+Modal:</span>
+                                    <span class="font-medium text-teal-700">${formatMoney(p.labaSplit ? p.labaSplit.totalHPP : p.hpp)}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">Ke Laba:</span>
+                                    <span class="font-medium text-emerald-600">${formatMoney(p.labaSplit ? p.labaSplit.laba : 0)}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">Ke Hutang Aset:</span>
+                                    <span class="font-medium text-red-600">${formatMoney(p.labaSplit ? p.labaSplit.hutangAset : 0)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openBayarPiutangModal('${p.id}')" class="btn btn-primary flex-1 py-2 text-xs">Bayar</button>
+                            <button onclick="openPenjualanModal('${p.id}')" class="btn btn-secondary flex-1 py-2 text-xs">Edit</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
 
             // Recent transactions
             const recent = [...appData.transaksi].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
@@ -1601,6 +1641,26 @@
             document.getElementById('penjualanPctLaba').value = appData.labaSplit.laba;
             document.getElementById('penjualanPctHutangAset').value = appData.labaSplit.hutangAset;
             calculatePenjualan();
+        }
+
+        function openPenjualanModal(id) {
+            const t = appData.transaksi.find(x => x.id === id);
+            if (!t) return;
+            document.getElementById('penjualanId').value = t.id;
+            document.getElementById('penjualanTanggal').value = t.date;
+            document.getElementById('penjualanPelanggan').value = t.pelanggan;
+            document.getElementById('penjualanDeskripsi').value = t.deskripsi;
+            document.getElementById('penjualanTotal').value = t.total;
+            document.getElementById('penjualanHPP').value = t.hpp;
+            document.getElementById('penjualanStatus').value = t.status;
+            document.getElementById('penjualanDP').value = t.dp || 0;
+            if (t.labaSplit) {
+                document.getElementById('penjualanPctHPP').value = t.labaSplit.hpp;
+                document.getElementById('penjualanPctLaba').value = t.labaSplit.laba;
+                document.getElementById('penjualanPctHutangAset').value = t.labaSplit.hutangAset;
+            }
+            calculatePenjualan();
+            openModal('modalPenjualan');
         }
 
         function calculatePenjualan() {
@@ -1692,25 +1752,35 @@
             if (id) {
                 // Hapus efek transaksi lama dari saldo
                 const old = appData.transaksi.find(t => t.id === id);
-                if (old && old.labaSplit) {
-                    appData.saldo.hpp -= (old.labaSplit.totalHPP || old.labaSplit.hpp);
-                    appData.saldo.laba -= old.labaSplit.laba;
-                    appData.saldo.hutangAset -= old.labaSplit.hutangAset;
-                }
+                if (old) restorePenjualanBalance(old);
                 const idx = appData.transaksi.findIndex(t => t.id === id);
                 if (idx >= 0) appData.transaksi[idx] = data;
             } else {
                 appData.transaksi.push(data);
             }
 
-            // Update saldo: HPP kembali ke Saldo HPP + pembagian laba
-            appData.saldo.hpp += totalKeHPP;
-            appData.saldo.laba += splitLaba;
-            appData.saldo.hutangAset += splitHutangAset;
+            // Update saldo hanya jika lunas
+            applyPenjualanBalance(data);
 
             saveData();
             closeModal('modalPenjualan');
             showToast('Transaksi penjualan disimpan');
+        }
+
+        function applyPenjualanBalance(t) {
+            if (t.status === 'lunas' && t.labaSplit) {
+                appData.saldo.hpp += (t.labaSplit.totalHPP || t.labaSplit.hpp);
+                appData.saldo.laba += t.labaSplit.laba;
+                appData.saldo.hutangAset += t.labaSplit.hutangAset;
+            }
+        }
+
+        function restorePenjualanBalance(t) {
+            if (t.status === 'lunas' && t.labaSplit) {
+                appData.saldo.hpp -= (t.labaSplit.totalHPP || t.labaSplit.hpp);
+                appData.saldo.laba -= t.labaSplit.laba;
+                appData.saldo.hutangAset -= t.labaSplit.hutangAset;
+            }
         }
 
         function resetPengeluaranForm() {
@@ -1722,6 +1792,28 @@
             document.getElementById('pengeluaranSatuan').value = 'pcs';
             togglePengeluaranFields();
             calculatePengeluaran();
+        }
+
+        function openPengeluaranModal(id) {
+            const t = appData.transaksi.find(x => x.id === id);
+            if (!t) return;
+            document.getElementById('pengeluaranId').value = t.id;
+            document.getElementById('pengeluaranTanggal').value = t.date;
+            document.getElementById('pengeluaranKategori').value = t.kategori;
+            document.getElementById('pengeluaranNama').value = t.nama;
+            document.getElementById('pengeluaranTotal').value = t.total;
+            document.getElementById('pengeluaranMetode').value = t.metode;
+            document.getElementById('pengeluaranStatus').value = t.status;
+            document.getElementById('pengeluaranDP').value = t.dp || 0;
+            // Coba ambil stok/satuan dari data master jika ada
+            const persediaan = appData.persediaan.find(p => p.transactionId === t.id);
+            if (persediaan) {
+                document.getElementById('pengeluaranStok').value = persediaan.stok;
+                document.getElementById('pengeluaranSatuan').value = persediaan.satuan;
+            }
+            togglePengeluaranFields();
+            calculatePengeluaran();
+            openModal('modalPengeluaran');
         }
 
         function togglePengeluaranFields() {
@@ -1909,6 +2001,7 @@
                                 <p class="text-sm font-bold text-emerald-600 money-display">${formatMoney(t.total)}</p>
                                 <div class="flex gap-2 mt-1 justify-end">
                                     ${t.piutang > 0 ? `<button onclick="openBayarPiutangModal('${t.id}')" class="text-xs text-teal-600">Bayar</button>` : ''}
+                                    <button onclick="openPenjualanModal('${t.id}')" class="text-xs text-slate-500">Edit</button>
                                     <button onclick="deleteTransaction('${t.id}')" class="text-xs text-red-500">Hapus</button>
                                 </div>
                             </div>
@@ -1934,6 +2027,7 @@
                                 <p class="text-sm font-bold text-rose-600 money-display">${formatMoney(t.total)}</p>
                                 <div class="flex gap-2 mt-1 justify-end">
                                     ${t.sisa > 0 ? `<button onclick="openBayarHutangModal('usaha', '${t.id}')" class="text-xs text-teal-600">Bayar</button>` : ''}
+                                    <button onclick="openPengeluaranModal('${t.id}')" class="text-xs text-slate-500">Edit</button>
                                     <button onclick="deleteTransaction('${t.id}')" class="text-xs text-red-500">Hapus</button>
                                 </div>
                             </div>
@@ -1946,10 +2040,8 @@
             if (!confirm('Yakin ingin menghapus transaksi ini?')) return;
             const t = appData.transaksi.find(x => x.id === id);
             if (t) {
-                if (t.type === 'penjualan' && t.labaSplit) {
-                    appData.saldo.hpp -= (t.labaSplit.totalHPP || t.labaSplit.hpp);
-                    appData.saldo.laba -= t.labaSplit.laba;
-                    appData.saldo.hutangAset -= t.labaSplit.hutangAset;
+                if (t.type === 'penjualan') {
+                    restorePenjualanBalance(t);
                 } else if (t.type === 'pengeluaran') {
                     restorePengeluaranBalance(t);
                     removeMasterDataFromTransaction(t);
@@ -1977,12 +2069,17 @@
                     const idx = appData.transaksi.findIndex(x => x.id === t.targetId);
                     if (idx >= 0) {
                         const p = appData.transaksi[idx];
+                        const wasLunas = p.status === 'lunas';
                         p.piutang += t.nominal;
                         p.dp = Math.max(0, p.dp - t.nominal);
                         if (p.piutang === p.total) {
                             p.status = 'belum';
                         } else if (p.piutang > 0) {
                             p.status = 'dp';
+                        }
+                        // Jika sebelumnya lunas tapi sekarang tidak, kembalikan saldo
+                        if (wasLunas && p.status !== 'lunas') {
+                            restorePenjualanBalance(p);
                         }
                     }
                 }
@@ -2266,9 +2363,15 @@
             }
 
             // Update piutang asli
+            const wasLunas = p.status === 'lunas';
             p.piutang = Math.max(0, p.piutang - nominal);
             p.dp = p.total - p.piutang;
             p.status = p.piutang === 0 ? 'lunas' : 'dp';
+
+            // Jika baru lunas, masukkan HPP + pembagian laba ke saldo
+            if (p.status === 'lunas' && !wasLunas) {
+                applyPenjualanBalance(p);
+            }
 
             appData.transaksi.push({
                 id: Date.now().toString(),

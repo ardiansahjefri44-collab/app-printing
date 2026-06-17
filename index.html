@@ -376,6 +376,10 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                     Kalkulator HPP
                 </button>
+                <button onclick="navigateTo('printer')" class="nav-sidebar w-full text-left px-4 py-3 rounded-xl text-teal-100 hover:bg-white/10 transition flex items-center gap-3 text-sm font-medium" data-page="printer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Printer Refill
+                </button>
                 <button onclick="navigateTo('laporan')" class="nav-sidebar w-full text-left px-4 py-3 rounded-xl text-teal-100 hover:bg-white/10 transition flex items-center gap-3 text-sm font-medium" data-page="laporan">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Laporan
@@ -697,7 +701,7 @@
                             <label class="text-xs font-semibold text-slate-600 block mb-1.5">Biaya Kertas per Lembar (Rp)</label>
                             <input type="number" id="hppBiayaKertas" class="input-field" value="150" oninput="calculateHPP()">
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-3 gap-3">
                             <div>
                                 <label class="text-xs font-semibold text-slate-600 block mb-1.5">Toner per Muka (Rp)</label>
                                 <input type="number" id="hppBiayaToner" class="input-field" value="75" oninput="calculateHPP()">
@@ -705,6 +709,10 @@
                             <div>
                                 <label class="text-xs font-semibold text-slate-600 block mb-1.5">Tinta per Muka (Rp)</label>
                                 <input type="number" id="hppBiayaTinta" class="input-field" value="0" oninput="calculateHPP()">
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600 block mb-1.5">Drum per Muka (Rp)</label>
+                                <input type="number" id="hppBiayaDrum" class="input-field" value="0" oninput="calculateHPP()">
                             </div>
                         </div>
                         <div>
@@ -720,6 +728,39 @@
                             <label class="text-xs font-semibold text-slate-600 block mb-1.5">Markup Harga Jual (%)</label>
                             <input type="number" id="hppMarkup" class="input-field" value="30" oninput="calculateHPP()">
                         </div>
+                    </div>
+                </div>
+
+                <!-- HPP Printer Riil Toggle -->
+                <div class="card p-4 mb-4 border border-teal-200 bg-teal-50">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-bold text-teal-900">HPP Printer</h2>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="hppUsePrinterRiil" class="sr-only peer" onchange="toggleHPPPrinterRiil()">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                            <span class="ml-2 text-xs font-medium text-teal-800">Gunakan HPP riil dari catatan refill</span>
+                        </label>
+                    </div>
+                    <div id="hppPrinterRiilInfo" class="hidden">
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Toner/Hal:</span>
+                                <span class="font-bold text-slate-800 money-display" id="hppRiilToner">Rp0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Cartridge/Hal:</span>
+                                <span class="font-bold text-slate-800 money-display" id="hppRiilCartridge">Rp0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Drum/Hal:</span>
+                                <span class="font-bold text-slate-800 money-display" id="hppRiilDrum">Rp0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Total/Hal:</span>
+                                <span class="font-bold text-teal-700 money-display" id="hppRiilTotal">Rp0</span>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-2">Data diambil dari menu Printer Refill. Jika belum ada data, akan dihitung 0.</p>
                     </div>
                 </div>
 
@@ -878,6 +919,112 @@
                 </div>
             </div>
 
+            <!-- Printer Refill Page -->
+            <div id="printer" class="page p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="text-lg font-bold text-teal-900">Catatan Refill & HPP Riil Printer</h1>
+                    <button onclick="openRefillModal()" class="btn btn-primary py-2 px-3 text-xs">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Tambah
+                    </button>
+                </div>
+
+                <!-- Summary Cards -->
+                <div id="printerSummary" class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="card p-3 border-l-4 border-slate-400">
+                        <p class="text-xs text-slate-500">Avg Toner/Hal</p>
+                        <p class="text-sm font-bold text-slate-700 money-display" id="avgToner">Rp0</p>
+                    </div>
+                    <div class="card p-3 border-l-4 border-slate-400">
+                        <p class="text-xs text-slate-500">Avg Cartridge/Hal</p>
+                        <p class="text-sm font-bold text-slate-700 money-display" id="avgCartridge">Rp0</p>
+                    </div>
+                    <div class="card p-3 border-l-4 border-slate-400">
+                        <p class="text-xs text-slate-500">Avg Drum/Hal</p>
+                        <p class="text-sm font-bold text-slate-700 money-display" id="avgDrum">Rp0</p>
+                    </div>
+                    <div class="card p-3 border-l-4 border-teal-500 bg-teal-50">
+                        <p class="text-xs text-teal-700 font-medium">Total HPP Printer/Hal</p>
+                        <p class="text-sm font-bold text-teal-800 money-display" id="totalHppPrinter">Rp0</p>
+                    </div>
+                    <div class="card p-3 border-l-4 border-blue-400">
+                        <p class="text-xs text-slate-500">Avg Halaman/Toner</p>
+                        <p class="text-sm font-bold text-slate-700" id="avgPageToner">0</p>
+                    </div>
+                    <div class="card p-3 border-l-4 border-blue-400">
+                        <p class="text-xs text-slate-500">Avg Halaman/Cartridge</p>
+                        <p class="text-sm font-bold text-slate-700" id="avgPageCartridge">0</p>
+                    </div>
+                    <div class="card p-3 border-l-4 border-blue-400">
+                        <p class="text-xs text-slate-500">Avg Halaman/Drum</p>
+                        <p class="text-sm font-bold text-slate-700" id="avgPageDrum">0</p>
+                    </div>
+                </div>
+
+                <!-- Toner Table -->
+                <div class="card p-4 mb-4">
+                    <h2 class="text-sm font-bold text-slate-800 mb-3">Riwayat Toner</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tgl</th>
+                                    <th>Ke</th>
+                                    <th>Meter</th>
+                                    <th>Total</th>
+                                    <th>Biaya</th>
+                                    <th>/Hal</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tonerTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cartridge Table -->
+                <div class="card p-4 mb-4">
+                    <h2 class="text-sm font-bold text-slate-800 mb-3">Riwayat Cartridge</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tgl</th>
+                                    <th>Ke</th>
+                                    <th>Meter</th>
+                                    <th>Total</th>
+                                    <th>Biaya</th>
+                                    <th>/Hal</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartridgeTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Drum Table -->
+                <div class="card p-4 mb-4">
+                    <h2 class="text-sm font-bold text-slate-800 mb-3">Riwayat Drum</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tgl</th>
+                                    <th>Ke</th>
+                                    <th>Meter</th>
+                                    <th>Total</th>
+                                    <th>Biaya</th>
+                                    <th>/Hal</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="drumTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Backup Page -->
             <div id="backup" class="page p-4">
                 <h1 class="text-lg font-bold text-teal-900 mb-4">Backup & Restore</h1>
@@ -932,7 +1079,7 @@
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <div class="grid grid-cols-5 h-full">
+            <div class="grid grid-cols-6 h-full">
                 <button onclick="navigateTo('dashboard')" class="nav-item active" data-page="dashboard">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                     Dashboard
@@ -948,6 +1095,10 @@
                 <button onclick="navigateTo('hpp')" class="nav-item" data-page="hpp">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                     HPP
+                </button>
+                <button onclick="navigateTo('printer')" class="nav-item" data-page="printer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Printer
                 </button>
                 <button onclick="navigateTo('laporan')" class="nav-item" data-page="laporan">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -1329,6 +1480,73 @@
         </div>
     </div>
 
+    <!-- Modal: Refill Printer -->
+    <div id="modalRefill" class="modal">
+        <div class="modal-content p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-slate-800" id="refillModalTitle">Catat Refill/Ganti Komponen</h2>
+                <button onclick="closeModal('modalRefill')" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="formRefill" onsubmit="saveRefill(event)">
+                <input type="hidden" id="refillId">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Jenis Komponen</label>
+                        <select id="refillType" class="input-field">
+                            <option value="toner">Toner</option>
+                            <option value="cartridge">Cartridge</option>
+                            <option value="drum">Drum</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Tanggal</label>
+                        <input type="date" id="refillDate" class="input-field" required>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Nama Komponen</label>
+                        <input type="text" id="refillName" class="input-field" placeholder="Contoh: Toner HP 85A" required>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Refill/Ganti Ke-</label>
+                        <input type="number" id="refillKe" class="input-field" placeholder="1" required min="1">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1.5">Meter Awal</label>
+                            <input type="number" id="refillMeterAwal" class="input-field" placeholder="0" required min="0" oninput="calculateRefill()">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1.5">Meter Akhir</label>
+                            <input type="number" id="refillMeterAkhir" class="input-field" placeholder="0" required min="0" oninput="calculateRefill()">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Total Halaman</label>
+                        <input type="text" id="refillTotalHalaman" class="input-field bg-slate-50" readonly>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Biaya Komponen (Rp)</label>
+                        <input type="number" id="refillBiaya" class="input-field" placeholder="0" required min="1" oninput="calculateRefill()">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Biaya per Halaman</label>
+                        <input type="text" id="refillBiayaPerHalaman" class="input-field bg-slate-50" readonly>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1.5">Catatan</label>
+                        <textarea id="refillCatatan" class="input-field" rows="2" placeholder="Keterangan tambahan..."></textarea>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-5">
+                    <button type="button" onclick="closeModal('modalRefill')" class="btn btn-secondary flex-1">Batal</button>
+                    <button type="submit" class="btn btn-primary flex-1">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -1354,7 +1572,8 @@
                 B5: [350, 310, 270],
                 A4: [450, 400, 350],
                 F4: [500, 450, 400]
-            }
+            },
+            printerRefill: []
         };
 
         let appData = JSON.parse(JSON.stringify(defaultData));
@@ -1388,6 +1607,7 @@
                     if (!appData.saldo) appData.saldo = { hpp: 0, laba: 0, hutangAset: 0 };
                     if (!appData.labaSplit) appData.labaSplit = defaultData.labaSplit;
                     if (!appData.hppDefaults) appData.hppDefaults = defaultData.hppDefaults;
+                    if (!appData.printerRefill) appData.printerRefill = defaultData.printerRefill;
                     if (!appData.hutangBayar) appData.hutangBayar = [];
                 } catch (e) {
                     appData = JSON.parse(JSON.stringify(defaultData));
@@ -2534,6 +2754,7 @@
             const biayaKertas = Number(document.getElementById('hppBiayaKertas').value || 0);
             const biayaToner = Number(document.getElementById('hppBiayaToner').value || 0);
             const biayaTinta = Number(document.getElementById('hppBiayaTinta').value || 0);
+            const biayaDrum = Number(document.getElementById('hppBiayaDrum').value || 0);
             const biayaCover = Number(document.getElementById('hppBiayaCover').value || 0);
             const biayaJilid = Number(document.getElementById('hppBiayaJilid').value || 0);
             const markup = Number(document.getElementById('hppMarkup').value || 0);
@@ -2542,7 +2763,7 @@
             const lembarKertas = Math.ceil(totalHalamanCetak / sisi);
             
             const costKertas = lembarKertas * biayaKertas;
-            const costTinta = totalHalamanCetak * sisi * (biayaToner + biayaTinta);
+            const costTinta = totalHalamanCetak * sisi * (biayaToner + biayaTinta + biayaDrum);
             const costCover = jumlahBuku * biayaCover;
             const costJilid = jumlahBuku * biayaJilid;
             
@@ -2571,6 +2792,157 @@
         }
 
         document.getElementById('hppUkuran').addEventListener('change', setDefaultCoverPrice);
+
+        // ==================== PRINTER REFILL ====================
+        function openRefillModal(id) {
+            document.getElementById('refillModalTitle').textContent = id ? 'Edit Refill/Ganti Komponen' : 'Catat Refill/Ganti Komponen';
+            if (id) {
+                const item = appData.printerRefill.find(r => r.id === id);
+                document.getElementById('refillId').value = item.id;
+                document.getElementById('refillType').value = item.type;
+                document.getElementById('refillDate').value = item.date;
+                document.getElementById('refillName').value = item.nama;
+                document.getElementById('refillKe').value = item.ke;
+                document.getElementById('refillMeterAwal').value = item.meterAwal;
+                document.getElementById('refillMeterAkhir').value = item.meterAkhir;
+                document.getElementById('refillBiaya').value = item.biaya;
+                document.getElementById('refillCatatan').value = item.catatan || '';
+            } else {
+                document.getElementById('formRefill').reset();
+                document.getElementById('refillId').value = '';
+                document.getElementById('refillDate').value = new Date().toISOString().split('T')[0];
+            }
+            calculateRefill();
+            openModal('modalRefill');
+        }
+
+        function calculateRefill() {
+            const meterAwal = Number(document.getElementById('refillMeterAwal').value || 0);
+            const meterAkhir = Number(document.getElementById('refillMeterAkhir').value || 0);
+            const biaya = Number(document.getElementById('refillBiaya').value || 0);
+            const totalHalaman = Math.max(0, meterAkhir - meterAwal);
+            const biayaPerHalaman = totalHalaman > 0 ? biaya / totalHalaman : 0;
+            document.getElementById('refillTotalHalaman').value = totalHalaman.toLocaleString('id-ID');
+            document.getElementById('refillBiayaPerHalaman').value = formatMoney(biayaPerHalaman);
+        }
+
+        function saveRefill(e) {
+            e.preventDefault();
+            const id = document.getElementById('refillId').value;
+            const meterAwal = Number(document.getElementById('refillMeterAwal').value || 0);
+            const meterAkhir = Number(document.getElementById('refillMeterAkhir').value || 0);
+            const biaya = Number(document.getElementById('refillBiaya').value || 0);
+            if (meterAkhir <= meterAwal) {
+                showToast('Meter akhir harus lebih besar dari meter awal');
+                return;
+            }
+            if (biaya <= 0) {
+                showToast('Biaya komponen tidak boleh kosong atau nol');
+                return;
+            }
+            const totalHalaman = meterAkhir - meterAwal;
+            const data = {
+                id: id || Date.now().toString(),
+                type: document.getElementById('refillType').value,
+                date: document.getElementById('refillDate').value,
+                nama: document.getElementById('refillName').value,
+                ke: Number(document.getElementById('refillKe').value || 1),
+                meterAwal: meterAwal,
+                meterAkhir: meterAkhir,
+                totalHalaman: totalHalaman,
+                biaya: biaya,
+                biayaPerHalaman: totalHalaman > 0 ? biaya / totalHalaman : 0,
+                catatan: document.getElementById('refillCatatan').value
+            };
+            if (id) {
+                const idx = appData.printerRefill.findIndex(r => r.id === id);
+                if (idx >= 0) appData.printerRefill[idx] = data;
+            } else {
+                appData.printerRefill.push(data);
+            }
+            saveData();
+            closeModal('modalRefill');
+            showToast('Catatan refill disimpan');
+        }
+
+        function deleteRefill(id) {
+            if (!confirm('Yakin ingin menghapus catatan refill ini?')) return;
+            appData.printerRefill = appData.printerRefill.filter(r => r.id !== id);
+            saveData();
+            showToast('Catatan refill dihapus');
+        }
+
+        function getPrinterRefillSummary() {
+            const toner = appData.printerRefill.filter(r => r.type === 'toner');
+            const cartridge = appData.printerRefill.filter(r => r.type === 'cartridge');
+            const drum = appData.printerRefill.filter(r => r.type === 'drum');
+            const avg = (arr, field) => arr.length > 0 ? arr.reduce((sum, item) => sum + item[field], 0) / arr.length : 0;
+            const avgToner = avg(toner, 'biayaPerHalaman');
+            const avgCartridge = avg(cartridge, 'biayaPerHalaman');
+            const avgDrum = avg(drum, 'biayaPerHalaman');
+            const avgPageToner = avg(toner, 'totalHalaman');
+            const avgPageCartridge = avg(cartridge, 'totalHalaman');
+            const avgPageDrum = avg(drum, 'totalHalaman');
+            const totalHpp = avgToner + avgCartridge + avgDrum;
+            return { avgToner, avgCartridge, avgDrum, totalHpp, avgPageToner, avgPageCartridge, avgPageDrum };
+        }
+
+        function renderPrinterRefill() {
+            const summary = getPrinterRefillSummary();
+            document.getElementById('avgToner').textContent = formatMoney(summary.avgToner);
+            document.getElementById('avgCartridge').textContent = formatMoney(summary.avgCartridge);
+            document.getElementById('avgDrum').textContent = formatMoney(summary.avgDrum);
+            document.getElementById('totalHppPrinter').textContent = formatMoney(summary.totalHpp);
+            document.getElementById('avgPageToner').textContent = Math.round(summary.avgPageToner).toLocaleString('id-ID');
+            document.getElementById('avgPageCartridge').textContent = Math.round(summary.avgPageCartridge).toLocaleString('id-ID');
+            document.getElementById('avgPageDrum').textContent = Math.round(summary.avgPageDrum).toLocaleString('id-ID');
+            const renderTable = (type, bodyId) => {
+                const items = appData.printerRefill.filter(r => r.type === type).sort((a, b) => new Date(b.date) - new Date(a.date));
+                const body = document.getElementById(bodyId);
+                if (items.length === 0) {
+                    body.innerHTML = '<tr><td colspan="7" class="text-center text-slate-400 py-4">Belum ada data</td></tr>';
+                } else {
+                    body.innerHTML = items.map(item => `
+                        <tr>
+                            <td>${item.date}</td>
+                            <td>${item.ke}</td>
+                            <td>${item.meterAwal.toLocaleString('id-ID')} - ${item.meterAkhir.toLocaleString('id-ID')}</td>
+                            <td>${item.totalHalaman.toLocaleString('id-ID')}</td>
+                            <td class="money-display">${formatMoney(item.biaya)}</td>
+                            <td class="money-display">${formatMoney(item.biayaPerHalaman)}</td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <button onclick="openRefillModal('${item.id}')" class="text-xs text-teal-600">Edit</button>
+                                    <button onclick="deleteRefill('${item.id}')" class="text-xs text-red-500">Hapus</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            };
+            renderTable('toner', 'tonerTableBody');
+            renderTable('cartridge', 'cartridgeTableBody');
+            renderTable('drum', 'drumTableBody');
+        }
+
+        function toggleHPPPrinterRiil() {
+            const useRiil = document.getElementById('hppUsePrinterRiil').checked;
+            const info = document.getElementById('hppPrinterRiilInfo');
+            if (useRiil) {
+                info.classList.remove('hidden');
+                const summary = getPrinterRefillSummary();
+                document.getElementById('hppRiilToner').textContent = formatMoney(summary.avgToner);
+                document.getElementById('hppRiilCartridge').textContent = formatMoney(summary.avgCartridge);
+                document.getElementById('hppRiilDrum').textContent = formatMoney(summary.avgDrum);
+                document.getElementById('hppRiilTotal').textContent = formatMoney(summary.totalHpp);
+                document.getElementById('hppBiayaToner').value = summary.avgToner.toFixed(2);
+                document.getElementById('hppBiayaTinta').value = summary.avgCartridge.toFixed(2);
+                document.getElementById('hppBiayaDrum').value = summary.avgDrum.toFixed(2);
+            } else {
+                info.classList.add('hidden');
+            }
+            calculateHPP();
+        }
 
         // ==================== LAPORAN ====================
         function setReportRange(range) {
@@ -2720,6 +3092,7 @@
             renderPersediaan();
             renderAset();
             renderHutangPiutang();
+            renderPrinterRefill();
             renderBackupInfo();
             loadHPPDefaults();
             calculateHPP();
